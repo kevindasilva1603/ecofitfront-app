@@ -22,7 +22,7 @@ const LoginScreen = ({ navigation }) => {
       await AsyncStorage.setItem('token', res.data.token);
       Alert.alert('Connecté !', `Bienvenue ${res.data.email}`);
       // Tu peux naviguer ici vers la Home
-      // navigation.replace('Home');
+       navigation.replace('Home');
     } catch (error) {
       console.log(error);
       Alert.alert('Erreur', 'Email ou mot de passe incorrect');
