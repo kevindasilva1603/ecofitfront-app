@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import axios from 'axios';
+import API_URL from '../api/config';
 
 const RegisterScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -13,10 +14,11 @@ const RegisterScreen = ({ navigation }) => {
     }
 
     try {
-      const res = await axios.post('http://192.168.1.2:3000/api/users/register', {
-        email,
-        password,
-      });
+      const res = await axios.post(`${API_URL}/api/users/register`, {
+  email,
+  password,
+});
+
 
       Alert.alert('Compte créé !', 'Vous pouvez maintenant vous connecter');
       navigation.replace('Login');

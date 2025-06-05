@@ -5,6 +5,10 @@ import OnboardingScreen from '../screens/OnboardingScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen'; // Assuming you have a RegisterScreen
 import HomeScreen from '../screens/HomeScreen';
+import AddActivityScreen from '../screens/AddActivityScreen';
+import StatsScreen from '../screens/StatsScreen';
+import ChallengeRewardScreen from '../screens/ChallengeRewardScreen';
+import RunTrackerScreen from '../screens/RunTrackerScreen';
 const Stack = createNativeStackNavigator();
 
 const AuthNavigator = () => (
@@ -13,6 +17,12 @@ const AuthNavigator = () => (
     <Stack.Screen name="Login" component={LoginScreen} />
     <Stack.Screen name="Home" component={HomeScreen} />
     <Stack.Screen name="Register" component={RegisterScreen} />
+    <Stack.Screen name="AddActivity" component={AddActivityScreen} />
+    <Stack.Screen name="Stats" component={StatsScreen} />
+    <Stack.Screen name="Challenges" component={ChallengeRewardScreen} />
+    <Stack.Screen name="RunTracker" component={RunTrackerScreen} />
+
+
   </Stack.Navigator>
 );
 
