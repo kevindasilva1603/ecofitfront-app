@@ -3,21 +3,22 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import API_URL from '../api/config';
+import { useNavigation } from '@react-navigation/native';
 
-const HistoryScreen = ({ navigation }) => {
+const HistoryScreen = () => {
   const [activities, setActivities] = useState([]);
+  const navigation = useNavigation();
 
   const fetchActivities = async () => {
     const token = await AsyncStorage.getItem('token');
     if (!token) return;
-
     try {
       const res = await axios.get(`${API_URL}/api/activities`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setActivities(res.data);
-    } catch (error) {
-      console.error('Erreur récupération historique :', error);
+    } catch {
+      // gestion erreur
     }
   };
 
@@ -25,7 +26,7 @@ const HistoryScreen = ({ navigation }) => {
     fetchActivities();
   }, []);
 
-  const formatDate = (dateStr) => new Date(dateStr).toLocaleString();
+  const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString();
 
   return (
     <View style={styles.container}>
@@ -54,18 +55,18 @@ const HistoryScreen = ({ navigation }) => {
 export default HistoryScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#f1f8e9' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 16, color: '#33691e', textAlign: 'center' },
+  container: { flex: 1, padding: 16, backgroundColor: '#f4f8f5' },
+  title: { fontSize: 24, fontWeight: '700', marginBottom: 16, color: '#2e7d32', textAlign: 'center' },
   card: {
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 10,
+    backgroundColor: '#daf0cb',
+    padding: 16,
+    borderRadius: 14,
+    marginBottom: 12,
+    shadowColor: '#00000015',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  type: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 4,
-    color: '#558b2f',
-  },
+  type: { fontWeight: '700', fontSize: 16, marginBottom: 4, color: '#4caf50' },
 });

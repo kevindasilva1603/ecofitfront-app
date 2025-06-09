@@ -1,162 +1,200 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import * as Location from 'expo-location';
-import MapView, { Marker, Polyline } from 'react-native-maps';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-import API_URL from '../api/config';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+  Dimensions,
+} from 'react-native';
+import MapView, { Polyline, Marker } from 'react-native-maps';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
-const RunTrackerScreen = ({ navigation }) => {
-  const [location, setLocation] = useState(null);
-  const [path, setPath] = useState([]); // Tableau des coordonnées GPS
-  const [distance, setDistance] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [calories, setCalories] = useState(0);
+const { width, height } = Dimensions.get('window');
+
+const LATITUDE_DELTA = 0.009;
+const LONGITUDE_DELTA = LATITUDE_DELTA * (width / height);
+
+export default function RunTrackerScreen() {
   const [isRunning, setIsRunning] = useState(false);
-  const [errorMsg, setErrorMsg] = useState(null);
-  const watchId = useRef(null);
-  const startTime = useRef(null);
-  const lastPosition = useRef(null);
+  const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const [routeCoords, setRouteCoords] = useState([]);
+  const intervalRef = useRef(null);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
+  // Simuler suivi GPS en ajoutant points aléatoires
   useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Permission GPS refusée');
-        return;
-      }
-      const current = await Location.getCurrentPositionAsync({});
-      setLocation(current.coords);
-      setPath([current.coords]); // Initialise le chemin avec la position de départ
-    })();
-  }, []);
-
-  const startRun = async () => {
-    setIsRunning(true);
-    startTime.current = Date.now();
-    lastPosition.current = null;
-    setPath([]); // Reset chemin au début de la course
-
-    watchId.current = await Location.watchPositionAsync(
-      {
-        accuracy: Location.Accuracy.Highest,
-        timeInterval: 1000,
-        distanceInterval: 1,
-      },
-      (loc) => {
-        const { latitude, longitude } = loc.coords;
-        const newPos = { latitude, longitude };
-
-        setLocation(newPos);
-        setPath((prevPath) => [...prevPath, newPos]); // Ajoute la nouvelle position au chemin
-
-        if (lastPosition.current) {
-          const dist = getDistanceFromLatLonInKm(
-            lastPosition.current.latitude,
-            lastPosition.current.longitude,
-            newPos.latitude,
-            newPos.longitude
-          );
-          setDistance((prev) => prev + dist);
-        }
-
-        lastPosition.current = newPos;
-        const elapsed = (Date.now() - startTime.current) / 1000 / 60;
-        setDuration(elapsed);
-        setCalories((0.05 * elapsed * 60).toFixed(0)); // estimation simple
-      }
-    );
-  };
-
-  const stopRun = async () => {
-    setIsRunning(false);
-    if (watchId.current) {
-      watchId.current.remove();
+    if (isRunning) {
+      intervalRef.current = setInterval(() => {
+        setSecondsElapsed((sec) => sec + 1);
+        setRouteCoords((coords) => {
+          // Exemple simple ajout de points autour d'un centre fixe
+          const lastCoord = coords.length ? coords[coords.length - 1] : { latitude: 48.8566, longitude: 2.3522 };
+          const newCoord = {
+            latitude: lastCoord.latitude + (Math.random() - 0.5) * 0.0005,
+            longitude: lastCoord.longitude + (Math.random() - 0.5) * 0.0005,
+          };
+          return [...coords, newCoord];
+        });
+      }, 1000);
+      animatePulse();
+    } else {
+      clearInterval(intervalRef.current);
+      scaleAnim.setValue(1);
     }
+    return () => clearInterval(intervalRef.current);
+  }, [isRunning]);
 
-    const token = await AsyncStorage.getItem('token');
-    await axios.post(
-      `${API_URL}/api/activities`,
-      {
-        type: 'course',
-        distance: Number(distance.toFixed(2)),
-        duration: Math.round(duration),
-      },
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-
-    navigation.goBack();
+  const animatePulse = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.15,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
   };
 
-  const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Rayon de la Terre en km
-    const dLat = deg2rad(lat2 - lat1);
-    const dLon = deg2rad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(deg2rad(lat1)) *
-        Math.cos(deg2rad(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+  const formatTime = (secs) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, '0');
+    const s = (secs % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
   };
 
-  const deg2rad = (deg) => deg * (Math.PI / 180);
+  const distance = (secondsElapsed * 0.015).toFixed(2);
+  const calories = (secondsElapsed * 0.1).toFixed(0);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🏃‍♂️ Entraînement en cours</Text>
-      {errorMsg && <Text style={styles.error}>{errorMsg}</Text>}
+      <Text style={styles.title}>Suivi de course</Text>
 
-      {location && (
-        <MapView
-          style={styles.map}
-          region={{
-            latitude: location.latitude,
-            longitude: location.longitude,
-            latitudeDelta: 0.005,
-            longitudeDelta: 0.005,
-          }}
+      <MapView
+        style={styles.map}
+        initialRegion={{
+          latitude: 48.8566,
+          longitude: 2.3522,
+          latitudeDelta: LATITUDE_DELTA,
+          longitudeDelta: LONGITUDE_DELTA,
+        }}
+        showsUserLocation
+        followsUserLocation
+      >
+        {routeCoords.length > 0 && (
+          <>
+            <Polyline coordinates={routeCoords} strokeColor="#4caf50" strokeWidth={5} />
+            <Marker coordinate={routeCoords[routeCoords.length - 1]} />
+          </>
+        )}
+      </MapView>
+
+      <View style={styles.statsRow}>
+        <View style={styles.statBox}>
+          <Ionicons name="walk-outline" size={30} color="#4caf50" />
+          <Text style={styles.statValue}>{distance} km</Text>
+          <Text style={styles.statLabel}>Distance</Text>
+        </View>
+
+        <View style={styles.statBox}>
+          <Ionicons name="time-outline" size={30} color="#4caf50" />
+          <Text style={styles.statValue}>{formatTime(secondsElapsed)}</Text>
+          <Text style={styles.statLabel}>Durée</Text>
+        </View>
+
+        <View style={styles.statBox}>
+          <MaterialCommunityIcons name="fire" size={30} color="#4caf50" />
+          <Text style={styles.statValue}>{calories}</Text>
+          <Text style={styles.statLabel}>Calories</Text>
+        </View>
+      </View>
+
+      <Animated.View style={[styles.buttonWrapper, { transform: [{ scale: scaleAnim }] }]}>
+        <TouchableOpacity
+          style={[styles.actionButton, isRunning ? styles.stopButton : styles.startButton]}
+          onPress={() => setIsRunning(!isRunning)}
+          activeOpacity={0.8}
         >
-          <Marker coordinate={location} title="Position actuelle" />
-          {path.length > 1 && <Polyline coordinates={path} strokeWidth={5} strokeColor="#43a047" />}
-        </MapView>
-      )}
-
-      <Text style={styles.stat}>Distance : {distance.toFixed(2)} km</Text>
-      <Text style={styles.stat}>Durée : {Math.round(duration)} min</Text>
-      <Text style={styles.stat}>Calories : {calories} kcal</Text>
-
-      {isRunning ? (
-        <TouchableOpacity style={styles.buttonStop} onPress={stopRun}>
-          <Text style={styles.buttonText}>Terminer</Text>
+          <Ionicons name={isRunning ? 'pause' : 'play'} size={50} color="#fff" />
         </TouchableOpacity>
-      ) : (
-        <TouchableOpacity style={styles.buttonStart} onPress={startRun}>
-          <Text style={styles.buttonText}>Commencer</Text>
-        </TouchableOpacity>
-      )}
+      </Animated.View>
+
+      <Text style={styles.motivation}>
+        {isRunning ? 'Bonne course ! 👟' : 'Appuyez sur ▶️ pour démarrer'}
+      </Text>
     </View>
   );
-};
-
-export default RunTrackerScreen;
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', backgroundColor: '#e8f5e9' },
-  title: { fontSize: 22, fontWeight: 'bold', marginTop: 40, color: '#2e7d32' },
-  stat: { fontSize: 18, marginTop: 10 },
-  error: { color: 'red', margin: 10 },
-  map: {
-    width: Dimensions.get('window').width - 40,
-    height: 250,
-    borderRadius: 10,
-    marginTop: 20,
+  container: {
+    flex: 1,
+    backgroundColor: '#f7faf5',
+    alignItems: 'center',
+    paddingTop: 40,
   },
-  buttonStart: { backgroundColor: '#43a047', padding: 15, borderRadius: 10, marginTop: 20 },
-  buttonStop: { backgroundColor: '#d32f2f', padding: 15, borderRadius: 10, marginTop: 20 },
-  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#2e7d32',
+    marginBottom: 20,
+  },
+  map: {
+    width: '90%',
+    height: 250,
+    borderRadius: 20,
+    marginBottom: 30,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '90%',
+    marginBottom: 40,
+  },
+  statBox: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#4caf50',
+    marginTop: 6,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#6a8a5b',
+    marginTop: 4,
+  },
+  buttonWrapper: {
+    marginBottom: 30,
+  },
+  actionButton: {
+    borderRadius: 70,
+    width: 140,
+    height: 140,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 7,
+    shadowColor: '#4caf50',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+  },
+  startButton: {
+    backgroundColor: '#4caf50',
+  },
+  stopButton: {
+    backgroundColor: '#d9534f',
+  },
+  motivation: {
+    fontSize: 16,
+    color: '#558b2f',
+    fontWeight: '600',
+  },
 });

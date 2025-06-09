@@ -1,29 +1,14 @@
-// App.js
-import React, { useEffect } from 'react';
-import { Alert } from 'react-native';
+import React from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
-import AuthNavigator from './src/navigation/AuthNavigator';
-import * as Notifications from 'expo-notifications';
-
-
-import { requestPermissions, scheduleDailyNotification } from './src/utils/notifications';
+import TabNavigator from './src/navigation/TabNavigator';
 
 export default function App() {
-  useEffect(() => {
-    (async () => {
-      const granted = await requestPermissions();
-      if (granted) {
-        await scheduleDailyNotification();
-        Alert.alert('Notifications activées', 'Vous recevrez un rappel quotidien à 9h.');
-      } else {
-        Alert.alert('Notifications refusées', 'Vous ne recevrez pas de rappels.');
-      }
-    })();
-  }, []);
-
   return (
-    <NavigationContainer>
-      <AuthNavigator />
-    </NavigationContainer>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer>
+        <TabNavigator />
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }

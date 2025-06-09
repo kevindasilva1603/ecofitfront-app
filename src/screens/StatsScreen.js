@@ -1,17 +1,23 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, Dimensions, StyleSheet, ScrollView } from 'react-native';
-import { PieChart } from 'react-native-chart-kit';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { useFocusEffect } from '@react-navigation/native';
 import API_URL from '../api/config';
+import {
+  LineChart,
+  BarChart,
+} from 'react-native-chart-kit';
 
 const screenWidth = Dimensions.get('window').width;
 
 const StatsScreen = () => {
-  const [activities, setActivities] = useState([]);
+  const [totalDistance, setTotalDistance] = useState(0);
+  const [totalPoints, setTotalPoints] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
+  const [weeklyDistances, setWeeklyDistances] = useState([]);
+  const [dailyPoints, setDailyPoints] = useState([]);
 
-  const fetchData = async () => {
+  const fetchStats = async () => {
     const token = await AsyncStorage.getItem('token');
     if (!token) return;
 
@@ -19,99 +25,144 @@ const StatsScreen = () => {
       const res = await axios.get(`${API_URL}/api/activities`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setActivities(res.data);
-    } catch (err) {
-      console.error('Erreur récupération stats :', err);
+      const activities = res.data;
+
+      // Calcul totaux
+      setTotalDistance(activities.reduce((a, b) => a + b.distance, 0));
+      setTotalPoints(activities.reduce((a, b) => a + b.points, 0));
+      setTotalDuration(activities.reduce((a, b) => a + b.duration, 0));
+
+      // Exemple données avancées : distances par jour de la semaine (mock)
+      const distancesByDay = [3.4, 5.2, 4.1, 6.0, 0, 0, 7.3]; // km
+      setWeeklyDistances(distancesByDay);
+
+      // Points par jour (mock)
+      const pointsByDay = [20, 35, 25, 40, 0, 0, 50];
+      setDailyPoints(pointsByDay);
+    } catch (error) {
+      console.error('Erreur récupération données :', error);
     }
   };
 
-  const countByType = (type) =>
-    activities.filter((a) => a.type === type).length;
-
-  const totalDistance = activities.reduce(
-    (total, a) => total + a.distance,
-    0
-  );
-
-  const data = [
-    {
-      name: 'Marche',
-      count: countByType('marche'),
-      color: '#81c784',
-      legendFontColor: '#444',
-      legendFontSize: 14,
-    },
-    {
-      name: 'Course',
-      count: countByType('course'),
-      color: '#4db6ac',
-      legendFontColor: '#444',
-      legendFontSize: 14,
-    },
-    {
-      name: 'Vélo',
-      count: countByType('vélo'),
-      color: '#9575cd',
-      legendFontColor: '#444',
-      legendFontSize: 14,
-    },
-  ];
-
-  useFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [])
-  );
+  useEffect(() => {
+    fetchStats();
+  }, []);
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>📊 Statistiques d'activité</Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>Statistiques</Text>
 
-      <Text style={styles.subtitle}>Répartition par type :</Text>
+      <View style={styles.statCard}>
+        <Text style={styles.statTitle}>Distance totale</Text>
+        <Text style={styles.statValue}>{totalDistance.toFixed(2)} km</Text>
+      </View>
 
-      <PieChart
-        data={data}
-        width={screenWidth - 32}
-        height={220}
-        chartConfig={{
-          color: () => `#388e3c`,
+      <View style={styles.statCard}>
+        <Text style={styles.statTitle}>Durée totale</Text>
+        <Text style={styles.statValue}>{totalDuration} min</Text>
+      </View>
+
+      <View style={styles.statCard}>
+        <Text style={styles.statTitle}>Éco-points totaux</Text>
+        <Text style={styles.statValue}>{totalPoints}</Text>
+      </View>
+
+      <Text style={[styles.title, { marginTop: 30 }]}>Statistiques avancées</Text>
+
+      <Text style={styles.chartTitle}>Distances parcourues (km) par jour de la semaine</Text>
+      <BarChart
+        data={{
+          labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+          datasets: [{ data: weeklyDistances }],
         }}
-        accessor="count"
-        backgroundColor="transparent"
-        paddingLeft="15"
-        absolute
+        width={screenWidth - 40}
+        height={220}
+        yAxisLabel=""
+        chartConfig={chartConfig}
+        verticalLabelRotation={20}
+        style={styles.chart}
       />
 
-      <Text style={styles.total}>🚴‍♂️ Distance totale : {totalDistance.toFixed(1)} km</Text>
+      <Text style={styles.chartTitle}>Points gagnés par jour</Text>
+      <LineChart
+        data={{
+          labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+          datasets: [{ data: dailyPoints }],
+        }}
+        width={screenWidth - 40}
+        height={220}
+        yAxisLabel=""
+        chartConfig={chartConfig}
+        bezier
+        style={styles.chart}
+      />
     </ScrollView>
   );
 };
 
 export default StatsScreen;
 
+const chartConfig = {
+  backgroundGradientFrom: '#e8f5e9',
+  backgroundGradientTo: '#f4fbf6',
+  decimalPlaces: 1,
+  color: (opacity = 1) => `rgba(46, 125, 50, ${opacity})`,
+  labelColor: (opacity = 1) => `rgba(70, 120, 60, ${opacity})`,
+  style: {
+    borderRadius: 16,
+  },
+  propsForDots: {
+    r: '6',
+    strokeWidth: '2',
+    stroke: '#2e7d32',
+  },
+};
+
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#f1f8e9',
+    padding: 20,
+    backgroundColor: '#f4f8f5',
+    flexGrow: 1,
   },
   title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textAlign: 'center',
+    fontSize: 26,
+    fontWeight: '700',
     color: '#2e7d32',
-  },
-  subtitle: {
-    fontSize: 16,
-    marginBottom: 8,
-    color: '#555',
-  },
-  total: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 20,
+    marginBottom: 20,
     textAlign: 'center',
-    color: '#33691e',
+  },
+  statCard: {
+    backgroundColor: '#daf0cb',
+    padding: 20,
+    borderRadius: 18,
+    marginBottom: 16,
+    shadowColor: '#00000020',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.12,
+    shadowRadius: 7,
+    elevation: 3,
+  },
+  statTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#386635',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#4caf50',
+  },
+  chartTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2e7d32',
+    marginBottom: 12,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  chart: {
+    borderRadius: 16,
+    marginBottom: 20,
   },
 });
