@@ -8,6 +8,8 @@ import HomeScreen from '../screens/HomeScreen';
 import AddActivityScreen from '../screens/AddActivityScreen';
 import StatsScreen from '../screens/StatsScreen';
 import ChallengeRewardScreen from '../screens/ChallengeRewardScreen';
+import HistoryScreen from '../screens/HistoryScreen';
+import SessionDetailScreen from '../screens/SessionDetailScreen';
 import RunTrackerScreen from '../screens/RunTrackerScreen';
 const Stack = createNativeStackNavigator();
 
@@ -21,7 +23,8 @@ const AuthNavigator = () => (
     <Stack.Screen name="Stats" component={StatsScreen} />
     <Stack.Screen name="Challenges" component={ChallengeRewardScreen} />
     <Stack.Screen name="RunTracker" component={RunTrackerScreen} />
-
+    <Stack.Screen name="History" component={HistoryScreen} />
+    <Stack.Screen name="SessionDetail" component={SessionDetailScreen} />
 
   </Stack.Navigator>
 );

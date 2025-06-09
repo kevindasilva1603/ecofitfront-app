@@ -84,6 +84,10 @@ const HomeScreen = () => {
       <TouchableOpacity style={styles.runButton} onPress={() => navigation.navigate('RunTracker')}>
         <Text style={styles.buttonText}>🏃‍♂️ Commencer une course</Text>
       </TouchableOpacity>
+
+      <TouchableOpacity style={styles.historyButton} onPress={() => navigation.navigate('History')}>
+        <Text style={styles.buttonText}>📜 Historique</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -102,5 +106,6 @@ const styles = StyleSheet.create({
   statsButton: { backgroundColor: '#1e88e5', padding: 15, borderRadius: 10, marginTop: 10 },
   challengeButton: { backgroundColor: '#8bc34a', padding: 15, borderRadius: 10, marginTop: 10 },
   runButton: { backgroundColor: '#ff9800', padding: 15, borderRadius: 10, marginTop: 10 },
+  historyButton: { backgroundColor: '#795548', padding: 15, borderRadius: 10, marginTop: 10 },
   buttonText: { color: '#fff', textAlign: 'center', fontWeight: 'bold' },
 });
