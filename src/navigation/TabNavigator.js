@@ -1,6 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import HomeStackNavigator from './HomeStackNavigator';
+import HomeStackNavigator from './MainStack'; // ta stack qui contient HomeScreen, AddActivity, etc
 import StatsScreen from '../screens/StatsScreen';
 import ChallengeRewardScreen from '../screens/ChallengeRewardScreen';
 import ProfileScreen from '../screens/ProfileScreen';

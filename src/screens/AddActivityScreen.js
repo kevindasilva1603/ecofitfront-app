@@ -18,10 +18,13 @@ const AddActivityScreen = ({ navigation }) => {
 
     const token = await AsyncStorage.getItem('token');
     try {
+      const dist = parseFloat(distance);
+      const pts = Math.round(dist * 5); // Exemple simple : 5 points par km
+
       await axios.post(`${API_URL}/api/activities`, {
         type,
-        distance: parseFloat(distance),
-        duration: parseInt(duration),
+        distance: dist,
+        points: pts,
       }, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -31,7 +34,7 @@ const AddActivityScreen = ({ navigation }) => {
       Alert.alert('Succès', 'Activité ajoutée !');
       navigation.goBack();
     } catch (err) {
-      console.error(err);
+      console.error('Erreur ajout activité:', err);
       Alert.alert('Erreur', 'Impossible d’ajouter l’activité');
     }
   };

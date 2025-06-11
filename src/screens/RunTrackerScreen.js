@@ -6,29 +6,30 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
+  Alert,
 } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import API_URL from '../api/config';
 
 const { width, height } = Dimensions.get('window');
-
 const LATITUDE_DELTA = 0.009;
 const LONGITUDE_DELTA = LATITUDE_DELTA * (width / height);
 
-export default function RunTrackerScreen() {
+export default function RunTrackerScreen({ navigation }) {
   const [isRunning, setIsRunning] = useState(false);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [routeCoords, setRouteCoords] = useState([]);
   const intervalRef = useRef(null);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  // Simuler suivi GPS en ajoutant points aléatoires
   useEffect(() => {
     if (isRunning) {
       intervalRef.current = setInterval(() => {
         setSecondsElapsed((sec) => sec + 1);
         setRouteCoords((coords) => {
-          // Exemple simple ajout de points autour d'un centre fixe
           const lastCoord = coords.length ? coords[coords.length - 1] : { latitude: 48.8566, longitude: 2.3522 };
           const newCoord = {
             latitude: lastCoord.latitude + (Math.random() - 0.5) * 0.0005,
@@ -70,6 +71,36 @@ export default function RunTrackerScreen() {
 
   const distance = (secondsElapsed * 0.015).toFixed(2);
   const calories = (secondsElapsed * 0.1).toFixed(0);
+
+  const handleStop = async () => {
+    setIsRunning(false);
+    const distNum = parseFloat(distance);
+    const pts = Math.round(distNum * 5);
+
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      Alert.alert('Erreur', 'Utilisateur non authentifié');
+      return;
+    }
+
+    try {
+      await axios.post(`${API_URL}/api/activities`, {
+        type: 'course',
+        distance: distNum,
+        duration: secondsElapsed,
+        points: pts,
+        path: routeCoords,
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      Alert.alert('Bravo', `Course enregistrée : ${distNum.toFixed(2)} km, ${pts} points`);
+      navigation.navigate('Home');
+    } catch (err) {
+      console.error('Erreur ajout course:', err);
+      Alert.alert('Erreur', 'Impossible d’enregistrer la course');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -117,7 +148,10 @@ export default function RunTrackerScreen() {
       <Animated.View style={[styles.buttonWrapper, { transform: [{ scale: scaleAnim }] }]}>
         <TouchableOpacity
           style={[styles.actionButton, isRunning ? styles.stopButton : styles.startButton]}
-          onPress={() => setIsRunning(!isRunning)}
+          onPress={() => {
+            if (isRunning) handleStop();
+            else setIsRunning(true);
+          }}
           activeOpacity={0.8}
         >
           <Ionicons name={isRunning ? 'pause' : 'play'} size={50} color="#fff" />

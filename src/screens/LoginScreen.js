@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_URL from '../api/config';
+import { AuthContext } from '../context/AuthContext';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { signIn } = useContext(AuthContext);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -15,16 +17,13 @@ const LoginScreen = ({ navigation }) => {
     }
 
     try {
-      const res = await axios.post(`${API_URL}/api/users/login`, {
-  email,
-  password,
-
-      });
-
+      const res = await axios.post(`${API_URL}/api/users/login`, { email, password });
       await AsyncStorage.setItem('token', res.data.token);
       Alert.alert('Connecté !', `Bienvenue ${res.data.email}`);
-      // Tu peux naviguer ici vers la Home
-       navigation.replace('Home');
+
+      // Appelle la fonction de connexion du contexte pour gérer la navigation globale
+      signIn(res.data.token);
+
     } catch (error) {
       console.log(error);
       Alert.alert('Erreur', 'Email ou mot de passe incorrect');
@@ -66,18 +65,8 @@ const LoginScreen = ({ navigation }) => {
 export default LoginScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-    backgroundColor: '#f2f2f2',
-  },
-  title: {
-    fontSize: 28,
-    marginBottom: 30,
-    textAlign: 'center',
-    color: '#333',
-  },
+  container: { flex: 1, padding: 20, justifyContent: 'center', backgroundColor: '#f2f2f2' },
+  title: { fontSize: 28, marginBottom: 30, textAlign: 'center', color: '#333' },
   input: {
     height: 50,
     backgroundColor: '#fff',
@@ -86,19 +75,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontSize: 16,
   },
-  button: {
-    backgroundColor: '#4caf50',
-    padding: 15,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontSize: 18,
-  },
-  link: {
-    color: '#1b5e20',
-    textAlign: 'center',
-    marginTop: 15,
-  },
+  button: { backgroundColor: '#4caf50', padding: 15, borderRadius: 8 },
+  buttonText: { color: '#fff', textAlign: 'center', fontSize: 18 },
+  link: { color: '#1b5e20', textAlign: 'center', marginTop: 15 },
 });
