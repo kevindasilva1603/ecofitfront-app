@@ -1,141 +1,278 @@
-
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-import API_URL from '../api/config';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  Dimensions,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-const ChallengeRewardScreen = () => {
-  const [challenges, setChallenges] = useState([]);
-  const [rewards, setRewards] = useState([]);
-  const [activities, setActivities] = useState([]);
-  const [unlockedRewards, setUnlockedRewards] = useState([]);
+const { width } = Dimensions.get('window');
 
-  const fetchData = async () => {
-    const token = await AsyncStorage.getItem('token');
-    if (!token) return;
+// Données locales fictives des défis
+const localChallenges = [
+  {
+    id: 'c1',
+    title: 'Marchez 5 km',
+    description: 'Faites une belle marche pour la planète 🌱',
+    goal: 5,
+    ecoPointValue: 25,
+  },
+  {
+    id: 'c2',
+    title: 'Économisez 10 kWh',
+    description: 'Réduisez votre consommation électrique 💡',
+    goal: 10,
+    ecoPointValue: 40,
+  },
+  {
+    id: 'c3',
+    title: 'Recyclez 3 déchets',
+    description: 'Contribuez au tri sélectif ♻️',
+    goal: 3,
+    ecoPointValue: 30,
+  },
+];
 
-    try {
-      const [challengeRes, rewardRes, activityRes, unlockedRes] = await Promise.all([
-        axios.get(`${API_URL}/api/challenges`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API_URL}/api/rewards`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API_URL}/api/activities`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API_URL}/api/user-rewards`, { headers: { Authorization: `Bearer ${token}` } }),
-      ]);
+// Données locales fictives des récompenses
+const localRewards = [
+  {
+    id: 'r1',
+    name: 'Badge Feuille Verte',
+    description: 'Montrez votre engagement écologique 🌿',
+    pointsRequired: 50,
+  },
+  {
+    id: 'r2',
+    name: 'Réduction 10% Magasin Bio',
+    description: 'Bénéficiez d’une remise chez un commerçant local',
+    pointsRequired: 120,
+  },
+  {
+    id: 'r3',
+    name: 'T-shirt Eco-fit',
+    description: 'Un t-shirt fabriqué en coton bio pour vous',
+    pointsRequired: 200,
+  },
+];
 
-      setChallenges(challengeRes.data);
-      setRewards(rewardRes.data);
-      setActivities(activityRes.data);
-      setUnlockedRewards(unlockedRes.data.map(r => r.id));
-    } catch (err) {
-      console.error('Erreur récupération données :', err);
-    }
-  };
-
-  const getTotalPoints = () => {
-    return activities.reduce((total, a) => total + a.points, 0);
-  };
-
-  const handleRedeem = async (reward) => {
-    const token = await AsyncStorage.getItem('token');
-    const userPoints = getTotalPoints();
-
-    if (unlockedRewards.includes(reward.id)) {
-      Alert.alert("⛔", "Récompense déjà débloquée");
-      return;
-    }
-
-    if (userPoints < reward.points_required) {
-      Alert.alert("⛔ Points insuffisants", `Il vous manque ${reward.points_required - userPoints} éco-points.`);
-      return;
-    }
-
-    try {
-      await axios.post(`${API_URL}/api/user-rewards`, { reward_id: reward.id }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      Alert.alert("🎉 Récompense débloquée !", `${reward.name} vous a été attribuée.`);
-      fetchData();
-    } catch (err) {
-      console.error(err);
-      Alert.alert("Erreur", "Impossible de débloquer la récompense");
-    }
-  };
-
-  const getProgress = (challenge) => {
-    if (challenge.goal_type === 'distance') {
-      const total = activities.reduce((sum, a) => sum + a.distance, 0);
-      return Math.min(total, challenge.goal_value);
-    } else if (challenge.goal_type === 'activités') {
-      return Math.min(activities.length, challenge.goal_value);
-    }
-    return 0;
-  };
+export default function ChallengeRewardScreen() {
+  const [ecoPoints, setEcoPoints] = useState(0); // Simule points utilisateur
+  const [challenges, setChallenges] = useState(localChallenges);
+  const [rewards, setRewards] = useState(localRewards);
+  const [completedChallenges, setCompletedChallenges] = useState({});
 
   useEffect(() => {
-    fetchData();
+    // Simule récupération éco-points stockés (ici fixe)
+    const storedPoints = 80; // tu peux récupérer depuis AsyncStorage / API plus tard
+    setEcoPoints(storedPoints);
   }, []);
 
-  return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>🎯 Défis disponibles</Text>
-      {challenges.map((item) => {
-        const progress = getProgress(item);
-        const completed = progress >= item.goal_value;
-        const percentage = Math.min(progress / item.goal_value, 1) * 100;
+  const handleCompleteChallenge = (challenge) => {
+    if (completedChallenges[challenge.id]) {
+      Alert.alert('Déjà validé !', 'Vous avez déjà complété ce défi.');
+      return;
+    }
 
-        return (
-          <View key={item.id} style={styles.card}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text>{item.description}</Text>
-            <Text style={styles.cardSub}>Objectif : {item.goal_value} ({item.goal_type})</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${percentage}%` }]} />
-            </View>
-            <Text style={styles.progressText}>
-              {progress} / {item.goal_value} {item.goal_type}
-              {completed ? " ✅ Terminé" : ""}
-            </Text>
-          </View>
-        );
-      })}
+    if (ecoPoints >= challenge.ecoPointValue) {
+      Alert.alert('Bravo !', `Vous avez déjà assez de points pour ce défi.`);
+      return;
+    }
 
-      <Text style={styles.title}>🏆 Récompenses</Text>
-      {rewards.map((item) => (
-        <View key={item.id} style={styles.card}>
-          <Text style={styles.cardTitle}>{item.name}</Text>
-          <Text>{item.description}</Text>
-          <Text style={styles.cardSub}>🔸 {item.points_required} éco-points</Text>
+    // Simule ajout de points et validation du défi
+    setCompletedChallenges((prev) => ({ ...prev, [challenge.id]: true }));
+    setEcoPoints((prev) => prev + challenge.ecoPointValue);
 
-          {unlockedRewards.includes(item.id) ? (
-            <Text style={styles.unlocked}>✅ Récompense débloquée</Text>
-          ) : (
+    Alert.alert('Défi validé !', `+${challenge.ecoPointValue} éco-points gagnés 🌿`);
+  };
+
+  const canRedeem = (reward) => ecoPoints >= reward.pointsRequired;
+
+  const renderChallenge = ({ item }) => {
+    const completed = completedChallenges[item.id] === true;
+
+    return (
+      <View style={[styles.challengeCard, completed && styles.challengeCompleted]}>
+        <Text style={styles.challengeTitle}>{item.title}</Text>
+        <Text style={styles.challengeDesc}>{item.description}</Text>
+
+        <Text style={styles.challengeGoal}>Objectif : {item.goal}</Text>
+        <Text style={styles.challengePoints}>Points offerts : {item.ecoPointValue}</Text>
+
+        <TouchableOpacity
+          style={[styles.challengeButton, completed && styles.buttonDisabled]}
+          onPress={() => handleCompleteChallenge(item)}
+          disabled={completed}
+        >
+          <Text style={styles.challengeButtonText}>
+            {completed ? 'Validé ✔️' : 'Valider le défi'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderReward = ({ item }) => {
+    const available = canRedeem(item);
+
+    return (
+      <View style={[styles.rewardCard, !available && styles.rewardLocked]}>
+        <Ionicons name="gift-outline" size={36} color={available ? '#4caf50' : '#a5d6a7'} />
+        <View style={{ flex: 1, marginLeft: 15 }}>
+          <Text style={styles.rewardName}>{item.name}</Text>
+          <Text style={styles.rewardDesc}>{item.description}</Text>
+          <Text style={[styles.pointsRequired, available ? {} : { color: '#a5d6a7' }]}>
+            {item.pointsRequired} pts requis
+          </Text>
+          {available && (
             <TouchableOpacity
               style={styles.redeemButton}
-              onPress={() => handleRedeem(item)}
+              onPress={() => Alert.alert('Récompense débloquée', `Félicitations pour ${item.name} ! 🎉`)}
             >
-              <Text style={styles.redeemText}>🎁 Débloquer</Text>
+              <Text style={styles.redeemButtonText}>Débloquer</Text>
             </TouchableOpacity>
           )}
+          {!available && <Text style={styles.lockedText}>Plus de points nécessaires</Text>}
         </View>
-      ))}
-    </ScrollView>
-  );
-};
+      </View>
+    );
+  };
 
-export default ChallengeRewardScreen;
+  return (
+    <View style={styles.container}>
+      <Text style={styles.header}>Défis & Récompenses</Text>
+      <Text style={styles.points}>Vos éco-points : <Text style={styles.pointsNumber}>{ecoPoints}</Text></Text>
+
+      <Text style={styles.subHeader}>Défis à relever</Text>
+      <FlatList
+        data={challenges}
+        renderItem={renderChallenge}
+        keyExtractor={(item) => item.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingLeft: 20 }}
+        style={{ marginBottom: 30 }}
+      />
+
+      <Text style={styles.subHeader}>Récompenses à débloquer</Text>
+      <FlatList
+        data={rewards}
+        renderItem={renderReward}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20 }}
+      />
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fbe7', padding: 16 },
-  title: { fontSize: 20, fontWeight: 'bold', marginVertical: 12, color: '#33691e' },
-  card: { backgroundColor: '#fff', padding: 12, borderRadius: 10, marginBottom: 10 },
-  cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#558b2f' },
-  cardSub: { marginTop: 4, fontStyle: 'italic', color: '#777' },
-  progressBar: { height: 10, backgroundColor: '#e0e0e0', borderRadius: 5, marginTop: 8 },
-  progressFill: { height: 10, backgroundColor: '#8bc34a', borderRadius: 5 },
-  progressText: { marginTop: 4, fontSize: 13, color: '#444' },
-  redeemButton: { marginTop: 10, backgroundColor: '#8bc34a', padding: 10, borderRadius: 8 },
-  redeemText: { textAlign: 'center', color: '#fff', fontWeight: 'bold' },
-  unlocked: { marginTop: 10, color: '#4caf50', fontWeight: 'bold' },
+  container: { flex: 1, backgroundColor: '#f7faf5', paddingTop: 30 },
+  header: { fontSize: 32, fontWeight: '900', color: '#2e7d32', paddingHorizontal: 20, marginBottom: 10 },
+  points: { fontSize: 18, fontWeight: '700', color: '#4caf50', paddingHorizontal: 20, marginBottom: 20 },
+  pointsNumber: { fontSize: 22, fontWeight: '900', color: '#2e7d32' },
+  subHeader: { fontSize: 24, fontWeight: '800', color: '#4caf50', paddingHorizontal: 20, marginBottom: 15 },
+
+  challengeCard: {
+    backgroundColor: '#dcedc8',
+    borderRadius: 20,
+    padding: 20,
+    marginRight: 20,
+    width: width * 0.75,
+    shadowColor: '#2e7d32',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 7 },
+    shadowRadius: 10,
+  },
+  challengeCompleted: {
+    backgroundColor: '#a5d6a7',
+  },
+  challengeTitle: {
+    fontWeight: '900',
+    fontSize: 22,
+    color: '#2e7d32',
+    marginBottom: 8,
+  },
+  challengeDesc: {
+    fontSize: 14,
+    color: '#53753f',
+    marginBottom: 15,
+  },
+  challengeGoal: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#33691e',
+  },
+  challengePoints: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#558b2f',
+    marginBottom: 15,
+  },
+  challengeButton: {
+    backgroundColor: '#4caf50',
+    paddingVertical: 12,
+    borderRadius: 15,
+  },
+  challengeButtonText: {
+    textAlign: 'center',
+    fontWeight: '900',
+    color: '#fff',
+    fontSize: 16,
+  },
+  buttonDisabled: {
+    backgroundColor: '#8bc34a',
+  },
+
+  rewardCard: {
+    flexDirection: 'row',
+    backgroundColor: '#e8f5e9',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 18,
+    shadowColor: '#2e7d32',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 8,
+    alignItems: 'center',
+  },
+  rewardLocked: {
+    opacity: 0.5,
+  },
+  rewardName: {
+    fontWeight: '900',
+    fontSize: 20,
+    color: '#2e7d32',
+  },
+  rewardDesc: {
+    fontSize: 14,
+    color: '#558b2f',
+  },
+  pointsRequired: {
+    fontWeight: '800',
+    marginTop: 8,
+    fontSize: 14,
+    color: '#4caf50',
+  },
+  redeemButton: {
+    marginTop: 10,
+    backgroundColor: '#4caf50',
+    borderRadius: 15,
+    paddingVertical: 8,
+  },
+  redeemButtonText: {
+    color: '#fff',
+    fontWeight: '900',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  lockedText: {
+    marginTop: 10,
+    color: '#8bc34a',
+    fontWeight: '700',
+    fontStyle: 'italic',
+  },
 });
