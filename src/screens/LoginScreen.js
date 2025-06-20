@@ -21,7 +21,7 @@ const LoginScreen = ({ navigation }) => {
       await AsyncStorage.setItem('token', res.data.token);
       Alert.alert('Connecté !', `Bienvenue ${res.data.email}`);
 
-      // Appelle la fonction de connexion du contexte pour gérer la navigation globale
+      // Appelle la fonction signIn du contexte pour mettre à jour le token et naviguer
       signIn(res.data.token);
 
     } catch (error) {

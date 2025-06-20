@@ -1,11 +1,22 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+  Dimensions,
+  Image,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import API_URL from '../api/config';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import ActivityCard from '../components/ActivityCard';
-import { Ionicons } from '@expo/vector-icons';  // <-- Ajout de l'import manquant
+import { Ionicons } from '@expo/vector-icons';
+
+const { width } = Dimensions.get('window');
 
 const HomeScreen = () => {
   const [email, setEmail] = useState('');
@@ -24,7 +35,7 @@ const HomeScreen = () => {
       setActivities(res.data);
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 700,
         useNativeDriver: true,
       }).start();
     } catch (err) {
@@ -55,36 +66,56 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.greeting}>
-        Bienvenue, <Text style={styles.email}>{email}</Text> <Text>👋</Text>
-      </Text>
-      <Text style={styles.points}>
-        🌿 Total éco-points : <Text style={styles.pointsNumber}>{getTotalPoints()}</Text> pts
-      </Text>
-      <Text style={styles.subtitle}>Vos dernières activités :</Text>
+      {/* Header with logo and welcome */}
+      <View style={styles.header}>
+        <Image
+          source={require('../../assets/leaf_bg.jpg')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.greeting}>
+          Bonjour, <Text style={styles.email}>{email || 'Utilisateur'}</Text> 👋
+        </Text>
+      </View>
 
+      {/* Total points panel */}
+      <View style={styles.pointsPanel}>
+        <Ionicons name="leaf" size={36} color="#4caf50" />
+        <Text style={styles.pointsText}>
+          Vous avez accumulé <Text style={styles.pointsNumber}>{getTotalPoints()}</Text> éco-points !
+        </Text>
+      </View>
+
+      {/* Subtitle */}
+      <Text style={styles.subtitle}>Activités récentes</Text>
+
+      {/* Activities list */}
       <FlatList
         data={activities}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={{ paddingBottom: 140 }}
+        contentContainerStyle={{ paddingBottom: 160 }}
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
+        style={styles.activitiesList}
       />
 
+      {/* Big Call to Action: Start run */}
       <TouchableOpacity
         style={styles.runButton}
+        activeOpacity={0.85}
         onPress={() => navigation.navigate('RunTracker')}
-        activeOpacity={0.8}
       >
-        <Text style={styles.runButtonText}>🏃‍♂️ Commencer une course</Text>
+        <Ionicons name="walk-outline" size={28} color="#fff" />
+        <Text style={styles.runButtonText}>Commencer une course</Text>
       </TouchableOpacity>
 
+      {/* Floating button to add activity */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate('AddActivity')}
         activeOpacity={0.7}
+        onPress={() => navigation.navigate('AddActivity')}
       >
-        <Ionicons name="add" size={32} color="#fff" />
+        <Ionicons name="add" size={36} color="#fff" />
       </TouchableOpacity>
     </View>
   );
@@ -95,69 +126,95 @@ export default HomeScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7faf5',
+    backgroundColor: '#e8f5e9',
     paddingHorizontal: 24,
-    paddingTop: 40,
+    paddingTop: 50,
   },
-  greeting: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#2e7d32',
+  header: {
+    alignItems: 'center',
     marginBottom: 10,
   },
+  logo: {
+    width: 140,
+    height: 60,
+    marginBottom: 12,
+  },
+  greeting: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#2e7d32',
+  },
   email: {
-    fontWeight: '900',
     color: '#558b2f',
   },
-  points: {
-    fontSize: 20,
-    fontWeight: '700',
+  pointsPanel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#a5d6a7',
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     marginBottom: 28,
-    color: '#4caf50',
+    shadowColor: '#4caf50',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  pointsText: {
+    color: '#2e7d32',
+    fontSize: 18,
+    marginLeft: 14,
+    flex: 1,
+    fontWeight: '600',
   },
   pointsNumber: {
     fontWeight: '900',
+    fontSize: 22,
   },
   subtitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 20,
-    color: '#6a8a5b',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 18,
+    color: '#4a7c3b',
+  },
+  activitiesList: {
+    marginBottom: 10,
   },
   runButton: {
     position: 'absolute',
-    bottom: 90,
+    bottom: 80,
     left: 24,
     right: 24,
-    backgroundColor: '#f4a261',
-    paddingVertical: 20,
-    borderRadius: 30,
+    flexDirection: 'row',
+    backgroundColor: '#66bb6a',
+    paddingVertical: 18,
+    borderRadius: 35,
     alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#b67237',
-    shadowOffset: { width: 0, height: 7 },
+    justifyContent: 'center',
+    elevation: 10,
+    shadowColor: '#438839',
     shadowOpacity: 0.45,
-    shadowRadius: 11,
+    shadowRadius: 12,
   },
   runButtonText: {
     color: '#fff',
-    fontWeight: '900',
+    fontWeight: '800',
     fontSize: 20,
+    marginLeft: 12,
   },
   fab: {
     position: 'absolute',
     bottom: 30,
     right: 30,
-    backgroundColor: '#70b541',
+    backgroundColor: '#388e3c',
     width: 64,
     height: 64,
     borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 10,
-    shadowColor: '#4e7c23',
-    shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
+    elevation: 12,
+    shadowColor: '#2a5d22',
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
   },
 });

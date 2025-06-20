@@ -13,12 +13,16 @@ const RegisterScreen = ({ navigation }) => {
       return;
     }
 
+    if (password.length < 6) {
+      Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 6 caractères.');
+      return;
+    }
+
     try {
       const res = await axios.post(`${API_URL}/api/users/register`, {
-  email,
-  password,
-});
-
+        email,
+        password,
+      });
 
       Alert.alert('Compte créé !', 'Vous pouvez maintenant vous connecter');
       navigation.replace('Login');

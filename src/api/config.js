@@ -12,7 +12,7 @@ const getApiUrl = () => {
     if (host) return `http://${host}:3000`;
   }
   // Fallback pour dev local
-  return 'http://localhost:3000';
+  return 'http://10.2.104.204:3000';
 };
 
 const API_URL = getApiUrl();

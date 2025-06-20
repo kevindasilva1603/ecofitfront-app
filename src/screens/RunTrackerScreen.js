@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import API_URL from '../api/config';
@@ -22,28 +23,73 @@ export default function RunTrackerScreen({ navigation }) {
   const [isRunning, setIsRunning] = useState(false);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [routeCoords, setRouteCoords] = useState([]);
+  const [region, setRegion] = useState(null);
   const intervalRef = useRef(null);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const locationSubscription = useRef(null);
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission refusée', 'Permission GPS nécessaire pour suivre la course');
+        return;
+      }
+      const lastLocation = await Location.getCurrentPositionAsync({});
+      setRegion({
+        latitude: lastLocation.coords.latitude,
+        longitude: lastLocation.coords.longitude,
+        latitudeDelta: LATITUDE_DELTA,
+        longitudeDelta: LONGITUDE_DELTA,
+      });
+    })();
+  }, []);
 
   useEffect(() => {
     if (isRunning) {
+      setSecondsElapsed(0);
+      setRouteCoords([]);
+
+      // Abonnement GPS
+      locationSubscription.current = Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Highest,
+          distanceInterval: 1, // maj à chaque mètre
+          timeInterval: 1000,
+        },
+        (location) => {
+          const { latitude, longitude } = location.coords;
+          setRouteCoords((coords) => [...coords, { latitude, longitude }]);
+          setRegion((prev) => ({
+            ...prev,
+            latitude,
+            longitude,
+          }));
+        }
+      );
+
+      // Chrono
       intervalRef.current = setInterval(() => {
         setSecondsElapsed((sec) => sec + 1);
-        setRouteCoords((coords) => {
-          const lastCoord = coords.length ? coords[coords.length - 1] : { latitude: 48.8566, longitude: 2.3522 };
-          const newCoord = {
-            latitude: lastCoord.latitude + (Math.random() - 0.5) * 0.0005,
-            longitude: lastCoord.longitude + (Math.random() - 0.5) * 0.0005,
-          };
-          return [...coords, newCoord];
-        });
       }, 1000);
+
       animatePulse();
     } else {
+      if (locationSubscription.current) {
+        locationSubscription.current.then(sub => sub.remove());
+        locationSubscription.current = null;
+      }
       clearInterval(intervalRef.current);
       scaleAnim.setValue(1);
     }
-    return () => clearInterval(intervalRef.current);
+
+    return () => {
+      if (locationSubscription.current) {
+        locationSubscription.current.then(sub => sub.remove());
+        locationSubscription.current = null;
+      }
+      clearInterval(intervalRef.current);
+    };
   }, [isRunning]);
 
   const animatePulse = () => {
@@ -69,7 +115,21 @@ export default function RunTrackerScreen({ navigation }) {
     return `${m}:${s}`;
   };
 
-  const distance = (secondsElapsed * 0.015).toFixed(2);
+  const calculateDistance = () => {
+    // Approximation simple : 0.00001 degré ~ 1.11m
+    if (routeCoords.length < 2) return 0;
+    let dist = 0;
+    for (let i = 1; i < routeCoords.length; i++) {
+      const prev = routeCoords[i - 1];
+      const curr = routeCoords[i];
+      const dLat = (curr.latitude - prev.latitude) * 111000; // approx en m
+      const dLon = (curr.longitude - prev.longitude) * 111000 * Math.cos(curr.latitude * Math.PI / 180);
+      dist += Math.sqrt(dLat * dLat + dLon * dLon);
+    }
+    return (dist / 1000).toFixed(2); // km
+  };
+
+  const distance = calculateDistance();
   const calories = (secondsElapsed * 0.1).toFixed(0);
 
   const handleStop = async () => {
@@ -84,18 +144,23 @@ export default function RunTrackerScreen({ navigation }) {
     }
 
     try {
-      await axios.post(`${API_URL}/api/activities`, {
-        type: 'course',
-        distance: distNum,
-        duration: secondsElapsed,
-        points: pts,
-        path: routeCoords,
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post(
+        `${API_URL}/api/activities`,
+        {
+          type: 'course',
+          distance: distNum,
+          duration: secondsElapsed,
+          points: pts,
+          path: routeCoords,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       Alert.alert('Bravo', `Course enregistrée : ${distNum.toFixed(2)} km, ${pts} points`);
-      navigation.navigate('Home');
+
+      navigation.navigate('Accueil', { screen: 'HomeScreen' });
     } catch (err) {
       console.error('Erreur ajout course:', err);
       Alert.alert('Erreur', 'Impossible d’enregistrer la course');
@@ -106,24 +171,21 @@ export default function RunTrackerScreen({ navigation }) {
     <View style={styles.container}>
       <Text style={styles.title}>Suivi de course</Text>
 
-      <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: 48.8566,
-          longitude: 2.3522,
-          latitudeDelta: LATITUDE_DELTA,
-          longitudeDelta: LONGITUDE_DELTA,
-        }}
-        showsUserLocation
-        followsUserLocation
-      >
-        {routeCoords.length > 0 && (
-          <>
-            <Polyline coordinates={routeCoords} strokeColor="#4caf50" strokeWidth={5} />
-            <Marker coordinate={routeCoords[routeCoords.length - 1]} />
-          </>
-        )}
-      </MapView>
+      {region && (
+        <MapView
+          style={styles.map}
+          region={region}
+          showsUserLocation
+          followsUserLocation
+        >
+          {routeCoords.length > 0 && (
+            <>
+              <Polyline coordinates={routeCoords} strokeColor="#4caf50" strokeWidth={5} />
+              <Marker coordinate={routeCoords[routeCoords.length - 1]} />
+            </>
+          )}
+        </MapView>
+      )}
 
       <View style={styles.statsRow}>
         <View style={styles.statBox}>
