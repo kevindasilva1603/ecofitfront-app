@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useContext } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import API_URL from '../api/config';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import ActivityCard from '../components/ActivityCard';
 import { Ionicons } from '@expo/vector-icons';
+import { PointsContext } from '../context/PointsContext';
 
 const { width } = Dimensions.get('window');
 
@@ -22,8 +23,9 @@ const HomeScreen = () => {
   const [email, setEmail] = useState('');
   const [activities, setActivities] = useState([]);
   const navigation = useNavigation();
-
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const { ecoPoints, refreshPoints } = useContext(PointsContext);
 
   const fetchData = async () => {
     const token = await AsyncStorage.getItem('token');
@@ -33,6 +35,7 @@ const HomeScreen = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setActivities(res.data);
+      refreshPoints(); // rafraîchir les points en parallèle
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 700,
@@ -43,8 +46,6 @@ const HomeScreen = () => {
     }
   };
 
-  const getTotalPoints = () => activities.reduce((total, a) => total + a.points, 0);
-
   useFocusEffect(
     useCallback(() => {
       fadeAnim.setValue(0);
@@ -54,7 +55,7 @@ const HomeScreen = () => {
           const payload = JSON.parse(atob(token.split('.')[1]));
           setEmail(payload.email);
         }
-        fetchData();
+        await fetchData();
       };
       init();
     }, [])
@@ -82,7 +83,7 @@ const HomeScreen = () => {
       <View style={styles.pointsPanel}>
         <Ionicons name="leaf" size={36} color="#4caf50" />
         <Text style={styles.pointsText}>
-          Vous avez accumulé <Text style={styles.pointsNumber}>{getTotalPoints()}</Text> éco-points !
+          Vous avez accumulé <Text style={styles.pointsNumber}>{ecoPoints}</Text> éco-points !
         </Text>
       </View>
 

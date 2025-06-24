@@ -14,6 +14,7 @@ import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import API_URL from '../api/config';
+import { sendNotification } from '../utils/notifications';
 
 const { width, height } = Dimensions.get('window');
 const LATITUDE_DELTA = 0.009;
@@ -50,11 +51,10 @@ export default function RunTrackerScreen({ navigation }) {
       setSecondsElapsed(0);
       setRouteCoords([]);
 
-      // Abonnement GPS
       locationSubscription.current = Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.Highest,
-          distanceInterval: 1, // maj à chaque mètre
+          distanceInterval: 1,
           timeInterval: 1000,
         },
         (location) => {
@@ -68,7 +68,6 @@ export default function RunTrackerScreen({ navigation }) {
         }
       );
 
-      // Chrono
       intervalRef.current = setInterval(() => {
         setSecondsElapsed((sec) => sec + 1);
       }, 1000);
@@ -116,17 +115,16 @@ export default function RunTrackerScreen({ navigation }) {
   };
 
   const calculateDistance = () => {
-    // Approximation simple : 0.00001 degré ~ 1.11m
     if (routeCoords.length < 2) return 0;
     let dist = 0;
     for (let i = 1; i < routeCoords.length; i++) {
       const prev = routeCoords[i - 1];
       const curr = routeCoords[i];
-      const dLat = (curr.latitude - prev.latitude) * 111000; // approx en m
+      const dLat = (curr.latitude - prev.latitude) * 111000;
       const dLon = (curr.longitude - prev.longitude) * 111000 * Math.cos(curr.latitude * Math.PI / 180);
       dist += Math.sqrt(dLat * dLat + dLon * dLon);
     }
-    return (dist / 1000).toFixed(2); // km
+    return (dist / 1000).toFixed(2);
   };
 
   const distance = calculateDistance();
@@ -159,7 +157,10 @@ export default function RunTrackerScreen({ navigation }) {
       );
 
       Alert.alert('Bravo', `Course enregistrée : ${distNum.toFixed(2)} km, ${pts} points`);
-
+      await sendNotification(
+        '🎉 Course terminée !',
+        `Tu as parcouru ${distNum.toFixed(2)} km et gagné ${pts} points !`
+      );
       navigation.navigate('Accueil', { screen: 'HomeScreen' });
     } catch (err) {
       console.error('Erreur ajout course:', err);
