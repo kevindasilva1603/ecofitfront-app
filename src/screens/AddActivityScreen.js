@@ -1,35 +1,77 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
+import * as ImagePicker from 'expo-image-picker';
 import API_URL from '../api/config';
 
 const AddActivityScreen = ({ navigation }) => {
   const [type, setType] = useState('marche');
   const [distance, setDistance] = useState('');
   const [duration, setDuration] = useState('');
+  const [photo, setPhoto] = useState(null);
+  const [canAdd, setCanAdd] = useState(true);
+
+  useEffect(() => {
+    const checkLastAdd = async () => {
+      const lastDate = await AsyncStorage.getItem('lastManualActivityDate');
+      if (lastDate) {
+        const last = new Date(lastDate);
+        const now = new Date();
+        const diff = now - last;
+        const twoDays = 2 * 24 * 60 * 60 * 1000;
+        if (diff < twoDays) setCanAdd(false);
+      }
+    };
+    checkLastAdd();
+  }, []);
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission refusée', 'Autorisez l’accès à la caméra.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      setPhoto(result.assets[0].uri);
+    }
+  };
 
   const handleSubmit = async () => {
-    if (!type || !distance || !duration) {
-      Alert.alert('Erreur', 'Tous les champs sont requis');
+    if (!type || !distance || !duration || !photo) {
+      Alert.alert('Erreur', 'Tous les champs et une photo sont requis');
+      return;
+    }
+
+    if (!canAdd) {
+      Alert.alert('Limite atteinte', 'Vous pouvez ajouter une activité manuelle tous les 2 jours seulement.');
       return;
     }
 
     const token = await AsyncStorage.getItem('token');
     try {
       const dist = parseFloat(distance);
-      const pts = Math.round(dist * 5); // Exemple simple : 5 points par km
+      const pts = Math.round(dist * 2); // moins de points que course
 
       await axios.post(`${API_URL}/api/activities`, {
         type,
         distance: dist,
+        duration: parseInt(duration),
         points: pts,
+        path: [],
       }, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
+
+      await AsyncStorage.setItem('lastManualActivityDate', new Date().toISOString());
 
       Alert.alert('Succès', 'Activité ajoutée !');
       navigation.goBack();
@@ -41,7 +83,7 @@ const AddActivityScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Nouvelle activité</Text>
+      <Text style={styles.title}>Nouvelle activité (manuelle)</Text>
 
       <Picker selectedValue={type} onValueChange={(value) => setType(value)} style={styles.picker}>
         <Picker.Item label="Marche" value="marche" />
@@ -65,6 +107,12 @@ const AddActivityScreen = ({ navigation }) => {
         onChangeText={setDuration}
       />
 
+      <TouchableOpacity style={styles.photoButton} onPress={takePhoto}>
+        <Text style={styles.buttonText}>{photo ? 'Photo prise ✅' : 'Prendre une photo'}</Text>
+      </TouchableOpacity>
+
+      {photo && <Image source={{ uri: photo }} style={styles.preview} />}
+
       <TouchableOpacity style={styles.button} onPress={handleSubmit}>
         <Text style={styles.buttonText}>Ajouter</Text>
       </TouchableOpacity>
@@ -79,6 +127,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, textAlign: 'center', marginBottom: 20, color: '#2e7d32' },
   picker: { backgroundColor: '#f0f0f0', marginBottom: 20 },
   input: { backgroundColor: '#f9f9f9', padding: 12, borderRadius: 8, marginBottom: 15 },
+  photoButton: { backgroundColor: '#8bc34a', padding: 15, borderRadius: 10, marginBottom: 10 },
   button: { backgroundColor: '#43a047', padding: 15, borderRadius: 10 },
-  buttonText: { color: '#fff', textAlign: 'center', fontWeight: 'bold' }
+  buttonText: { color: '#fff', textAlign: 'center', fontWeight: 'bold' },
+  preview: { width: 120, height: 120, alignSelf: 'center', marginBottom: 15, borderRadius: 10 },
 });
