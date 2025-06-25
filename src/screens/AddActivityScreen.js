@@ -59,7 +59,7 @@ const AddActivityScreen = ({ navigation }) => {
     const token = await AsyncStorage.getItem('token');
     try {
       const dist = parseFloat(distance);
-      const pts = Math.round(dist * 2); // moins de points que course
+      const pts = Math.round(dist * 2); // moins de points que course automatique
 
       await axios.post(`${API_URL}/api/activities`, {
         type,
@@ -67,13 +67,14 @@ const AddActivityScreen = ({ navigation }) => {
         duration: parseInt(duration),
         points: pts,
         path: [],
+        photo, // <--- ici on envoie l'URI
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       await AsyncStorage.setItem('lastManualActivityDate', new Date().toISOString());
 
-      Alert.alert('Succès', 'Activité ajoutée !');
+      Alert.alert('Succès', 'Activité ajoutée avec photo !');
       navigation.goBack();
     } catch (err) {
       console.error('Erreur ajout activité:', err);
