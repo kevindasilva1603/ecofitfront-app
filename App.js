@@ -7,6 +7,10 @@ import TabNavigator from './src/navigation/TabNavigator';
 import { showWelcomeNotification } from './src/utils/notifications';
 import * as Notifications from 'expo-notifications';
 import { PointsProvider } from './src/context/PointsContext';
+import { LogBox } from 'react-native';
+
+//Enlève les warnings des erreurs.
+LogBox.ignoreAllLogs();
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
