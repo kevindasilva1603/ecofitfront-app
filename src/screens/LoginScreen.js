@@ -11,24 +11,30 @@ const LoginScreen = ({ navigation }) => {
   const { signIn } = useContext(AuthContext);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Erreur', 'Merci de remplir tous les champs');
-      return;
-    }
+  if (!email || !password) {
+    Alert.alert('Erreur', 'Merci de remplir tous les champs');
+    return;
+  }
 
-    try {
-      const res = await axios.post(`${API_URL}/api/users/login`, { email, password });
-      await AsyncStorage.setItem('token', res.data.token);
-      Alert.alert('Connecté !', `Bienvenue ${res.data.email}`);
+  try {
+    console.log('Tentative de connexion avec :', { email, password });
 
-      // Appelle la fonction signIn du contexte pour mettre à jour le token et naviguer
-      signIn(res.data.token);
+    const res = await axios.post(`${API_URL}/api/users/login`, {
+      email,
+      password,
+    });
 
-    } catch (error) {
-      console.log(error);
-      Alert.alert('Erreur', 'Email ou mot de passe incorrect');
-    }
-  };
+    console.log('Réponse du serveur :', res.data);
+
+    await AsyncStorage.setItem('token', res.data.token);
+    Alert.alert('Connecté !', `Bienvenue ${res.data.email}`);
+    signIn(res.data.token);
+  } catch (error) {
+    console.log('Erreur de connexion :', error.response?.data || error.message);
+    Alert.alert('Erreur', 'Email ou mot de passe incorrect');
+  }
+};
+
 
   return (
     <View style={styles.container}>

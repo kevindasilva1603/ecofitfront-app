@@ -1,3 +1,5 @@
+// src/utils/notifications.js
+
 import * as Notifications from 'expo-notifications';
 
 export async function showWelcomeNotification() {
@@ -6,6 +8,16 @@ export async function showWelcomeNotification() {
       title: 'Bienvenue sur EcoFit 👋',
       body: 'Prêt pour une nouvelle session écologique ? 💪🌱',
     },
-    trigger: null, // immédiat
+    trigger: null,
+  });
+}
+
+export async function sendNotification(title, body) {
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title,
+      body,
+    },
+    trigger: null, // notification immédiate
   });
 }

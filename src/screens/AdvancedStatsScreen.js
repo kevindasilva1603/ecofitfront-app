@@ -5,6 +5,7 @@ import { LineChart, PieChart } from 'react-native-chart-kit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import API_URL from '../api/config';
+import styles from '../styles/AdvancedStatsScreen.styles';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -102,22 +103,6 @@ const chartConfig = {
   },
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#f1f8e9',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    color: '#33691e',
-  },
-  chart: {
-    marginBottom: 24,
-    borderRadius: 16,
-  },
-});
+
 
 export default AdvancedStatsScreen;

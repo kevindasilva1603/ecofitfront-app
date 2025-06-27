@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import API_URL from '../api/config';
 import { sendNotification } from '../utils/notifications';
+import styles from '../styles/runtrackerscreen.styles';
 
 const { width, height } = Dimensions.get('window');
 const LATITUDE_DELTA = 0.009;
@@ -131,42 +132,45 @@ export default function RunTrackerScreen({ navigation }) {
   const calories = (secondsElapsed * 0.1).toFixed(0);
 
   const handleStop = async () => {
-    setIsRunning(false);
-    const distNum = parseFloat(distance);
-    const pts = Math.round(distNum * 5);
+  setIsRunning(false);
+  const distNum = parseFloat(distance);
+  const pts = Math.round(distNum * 5);
 
-    const token = await AsyncStorage.getItem('token');
-    if (!token) {
-      Alert.alert('Erreur', 'Utilisateur non authentifié');
-      return;
-    }
+  const token = await AsyncStorage.getItem('token');
+  if (!token) {
+    Alert.alert('Erreur', 'Utilisateur non authentifié');
+    return;
+  }
 
-    try {
-      await axios.post(
-        `${API_URL}/api/activities`,
-        {
-          type: 'course',
-          distance: distNum,
-          duration: secondsElapsed,
-          points: pts,
-          path: routeCoords,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      Alert.alert('Bravo', `Course enregistrée : ${distNum.toFixed(2)} km, ${pts} points`);
-      await sendNotification(
-        '🎉 Course terminée !',
-        `Tu as parcouru ${distNum.toFixed(2)} km et gagné ${pts} points !`
-      );
-      navigation.navigate('Accueil', { screen: 'HomeScreen' });
-    } catch (err) {
-      console.error('Erreur ajout course:', err);
-      Alert.alert('Erreur', 'Impossible d’enregistrer la course');
-    }
+  const payload = {
+    type: 'course',
+    distance: distNum,
+    duration: secondsElapsed,
+    points: pts,
+    // path: routeCoords, // ⛔️ Commenté pour éviter erreur 400
   };
+
+  console.log("Payload envoyé :", payload);
+
+  try {
+    const response = await axios.post(`${API_URL}/api/activities`, payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    console.log("Réponse serveur :", response.data);
+
+    Alert.alert('Bravo', `Course enregistrée : ${distNum.toFixed(2)} km, ${pts} points`);
+    await sendNotification(
+      '🎉 Course terminée !',
+      `Tu as parcouru ${distNum.toFixed(2)} km et gagné ${pts} points !`
+    );
+    navigation.navigate('Accueil', { screen: 'HomeScreen' });
+  } catch (err) {
+    console.error("Erreur ajout course :", err.response?.data || err.message);
+    Alert.alert('Erreur', 'Impossible d’enregistrer la course');
+  }
+};
+
 
   return (
     <View style={styles.container}>
@@ -228,70 +232,3 @@ export default function RunTrackerScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f7faf5',
-    alignItems: 'center',
-    paddingTop: 40,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#2e7d32',
-    marginBottom: 20,
-  },
-  map: {
-    width: '90%',
-    height: 250,
-    borderRadius: 20,
-    marginBottom: 30,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '90%',
-    marginBottom: 40,
-  },
-  statBox: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#4caf50',
-    marginTop: 6,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#6a8a5b',
-    marginTop: 4,
-  },
-  buttonWrapper: {
-    marginBottom: 30,
-  },
-  actionButton: {
-    borderRadius: 70,
-    width: 140,
-    height: 140,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 7,
-    shadowColor: '#4caf50',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-  },
-  startButton: {
-    backgroundColor: '#4caf50',
-  },
-  stopButton: {
-    backgroundColor: '#d9534f',
-  },
-  motivation: {
-    fontSize: 16,
-    color: '#558b2f',
-    fontWeight: '600',
-  },
-});
