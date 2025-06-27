@@ -1,19 +1,16 @@
-import React, { useState, useContext } from 'react';
+import React, { useContext } from 'react';
 import {
   View,
   Text,
   FlatList,
-  StyleSheet,
   TouchableOpacity,
   Alert,
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-import API_URL from '../api/config';
-import { PointsContext } from '../context/PointsContext';
 import styles from '../styles/ChallengeRewardScreen.styles';
+import useChallengeReward from '../hooks/useChallengeReward';
+import { PointsContext } from '../context/PointsContext';
 
 const { width } = Dimensions.get('window');
 
@@ -30,61 +27,17 @@ const localRewards = [
 ];
 
 export default function ChallengeRewardScreen() {
-  const [completedChallenges, setCompletedChallenges] = useState({});
   const { ecoPoints, subtractPoints, refreshPoints } = useContext(PointsContext);
+  const { completedChallenges, completeChallenge, redeemReward } = useChallengeReward({ refreshPoints, subtractPoints });
 
   const handleCompleteChallenge = async (challenge) => {
-    if (completedChallenges[challenge.id]) {
-      Alert.alert('Déjà validé !', 'Ce défi a déjà été complété.');
-      return;
-    }
-
-    try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return;
-
-      // Sauvegarder une activité "défi" dans la base
-      await axios.post(`${API_URL}/api/activities`, {
-        type: 'defi',
-        distance: 0,
-        duration: 0,
-        points: challenge.ecoPointValue,
-        path: [],
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      setCompletedChallenges((prev) => ({ ...prev, [challenge.id]: true }));
-      await refreshPoints();
-
-      Alert.alert('Défi validé !', `+${challenge.ecoPointValue} éco-points 🌿`);
-    } catch (err) {
-      console.error('Erreur validation défi :', err);
-      Alert.alert('Erreur', 'Impossible de valider ce défi.');
-    }
+    const result = await completeChallenge(challenge);
+    Alert.alert(result.success ? 'Défi validé !' : 'Erreur', result.message);
   };
 
   const handleRedeemReward = async (reward) => {
-    if (ecoPoints < reward.pointsRequired) {
-      Alert.alert('Pas assez de points', 'Complétez plus de défis !');
-      return;
-    }
-
-    try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return;
-
-      // Simuler une "utilisation" de points
-      // Tu peux aussi enregistrer une table user_rewards si besoin
-      // Ici on fait juste une décrémentation
-      subtractPoints(reward.pointsRequired);
-      await refreshPoints();
-
-      Alert.alert('Récompense débloquée 🎉', `${reward.name} est à vous !`);
-    } catch (err) {
-      console.error('Erreur débloquage récompense :', err);
-      Alert.alert('Erreur', 'Impossible de débloquer cette récompense.');
-    }
+    const result = await redeemReward(reward, ecoPoints);
+    Alert.alert(result.success ? 'Récompense 🎁' : 'Erreur', result.message);
   };
 
   const renderChallenge = ({ item }) => {
@@ -120,12 +73,13 @@ export default function ChallengeRewardScreen() {
           <Text style={[styles.pointsRequired, !available && { color: '#a5d6a7' }]}>
             {item.pointsRequired} pts requis
           </Text>
-          {available && (
+          {available ? (
             <TouchableOpacity style={styles.redeemButton} onPress={() => handleRedeemReward(item)}>
               <Text style={styles.redeemButtonText}>Débloquer</Text>
             </TouchableOpacity>
+          ) : (
+            <Text style={styles.lockedText}>Pas assez de points</Text>
           )}
-          {!available && <Text style={styles.lockedText}>Pas assez de points</Text>}
         </View>
       </View>
     );

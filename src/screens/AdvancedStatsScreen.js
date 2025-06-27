@@ -1,36 +1,18 @@
-// src/screens/AdvancedStatsScreen.js
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Dimensions, StyleSheet } from 'react-native';
+import React from 'react';
+import { View, Text, ScrollView, Dimensions } from 'react-native';
 import { LineChart, PieChart } from 'react-native-chart-kit';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-import API_URL from '../api/config';
 import styles from '../styles/AdvancedStatsScreen.styles';
+import useActivities from '../hooks/useActivities';
 
 const screenWidth = Dimensions.get('window').width;
 
 const AdvancedStatsScreen = () => {
-  const [activities, setActivities] = useState([]);
+  const { activities, loading } = useActivities();
 
-  useEffect(() => {
-    const fetchActivities = async () => {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return;
+  if (loading) {
+    return <Text style={styles.title}>Chargement des stats...</Text>;
+  }
 
-      try {
-        const res = await axios.get(`${API_URL}/api/activities`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setActivities(res.data);
-      } catch (error) {
-        console.error('Erreur récupération activités :', error);
-      }
-    };
-
-    fetchActivities();
-  }, []);
-
-  // Préparer les données pour le graphique en ligne
   const distancesByDate = activities.reduce((acc, activity) => {
     const date = new Date(activity.created_at).toLocaleDateString();
     acc[date] = (acc[date] || 0) + activity.distance;
@@ -49,7 +31,6 @@ const AdvancedStatsScreen = () => {
     ],
   };
 
-  // Préparer les données pour le camembert
   const typeCounts = activities.reduce((acc, activity) => {
     acc[activity.type] = (acc[activity.type] || 0) + 1;
     return acc;
@@ -102,7 +83,5 @@ const chartConfig = {
     borderRadius: 16,
   },
 };
-
-
 
 export default AdvancedStatsScreen;

@@ -1,40 +1,39 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_URL from '../api/config';
-import { AuthContext } from '../context/AuthContext';
-
+import useAuth from '../hooks/useAuth'; 
+import styles from '../styles/loginscreen.styles'
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { signIn } = useContext(AuthContext);
+  const { login } = useAuth(); // on utilise le hook au lieu de useContext(AuthContext)
 
   const handleLogin = async () => {
-  if (!email || !password) {
-    Alert.alert('Erreur', 'Merci de remplir tous les champs');
-    return;
-  }
+    if (!email || !password) {
+      Alert.alert('Erreur', 'Merci de remplir tous les champs');
+      return;
+    }
 
-  try {
-    console.log('Tentative de connexion avec :', { email, password });
+    try {
+      console.log('Tentative de connexion avec :', { email, password });
 
-    const res = await axios.post(`${API_URL}/api/users/login`, {
-      email,
-      password,
-    });
+      const res = await axios.post(`${API_URL}/api/users/login`, {
+        email,
+        password,
+      });
 
-    console.log('Réponse du serveur :', res.data);
+      console.log('Réponse du serveur :', res.data);
 
-    await AsyncStorage.setItem('token', res.data.token);
-    Alert.alert('Connecté !', `Bienvenue ${res.data.email}`);
-    signIn(res.data.token);
-  } catch (error) {
-    console.log('Erreur de connexion :', error.response?.data || error.message);
-    Alert.alert('Erreur', 'Email ou mot de passe incorrect');
-  }
-};
-
+      await AsyncStorage.setItem('token', res.data.token);
+      Alert.alert('Connecté !', `Bienvenue ${res.data.email}`);
+      login(res.data.token); // ✅ remplace signIn()
+    } catch (error) {
+      console.log('Erreur de connexion :', error.response?.data || error.message);
+      Alert.alert('Erreur', 'Email ou mot de passe incorrect');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -70,18 +69,3 @@ const LoginScreen = ({ navigation }) => {
 
 export default LoginScreen;
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: 'center', backgroundColor: '#f2f2f2' },
-  title: { fontSize: 28, marginBottom: 30, textAlign: 'center', color: '#333' },
-  input: {
-    height: 50,
-    backgroundColor: '#fff',
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    marginBottom: 20,
-    fontSize: 16,
-  },
-  button: { backgroundColor: '#4caf50', padding: 15, borderRadius: 8 },
-  buttonText: { color: '#fff', textAlign: 'center', fontSize: 18 },
-  link: { color: '#1b5e20', textAlign: 'center', marginTop: 15 },
-});
