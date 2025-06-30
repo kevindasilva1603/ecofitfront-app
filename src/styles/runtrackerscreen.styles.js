@@ -1,71 +1,78 @@
-// styles/runtrackerscreen.styles.js
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7faf5',
-    alignItems: 'center',
-    paddingTop: 40,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#2e7d32',
-    marginBottom: 20,
+    backgroundColor: '#f4f8f5',
   },
   map: {
-    width: '90%',
-    height: 250,
-    borderRadius: 20,
-    marginBottom: 30,
+    flex: 1,
+    width: '100%',
+    height: height * 0.6,
+  },
+  bottomSheet: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 40,
+    alignItems: 'center',
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+  },
+  motivation: {
+    fontSize: 18,
+    color: '#4caf50',
+    fontWeight: '600',
+    marginBottom: 20,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '90%',
-    marginBottom: 40,
+    width: '100%',
+    marginBottom: 20,
   },
   statBox: {
     alignItems: 'center',
     flex: 1,
   },
   statValue: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#4caf50',
-    marginTop: 6,
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#2e7d32',
   },
   statLabel: {
     fontSize: 14,
-    color: '#6a8a5b',
+    color: '#7ea47e',
     marginTop: 4,
   },
   buttonWrapper: {
-    marginBottom: 30,
+    marginTop: 10,
+    alignItems: 'center',
   },
   actionButton: {
-    borderRadius: 70,
-    width: 140,
-    height: 140,
+    width: 100,
+    height: 100,
+    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 7,
+    elevation: 6,
     shadowColor: '#4caf50',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
   },
   startButton: {
     backgroundColor: '#4caf50',
   },
   stopButton: {
-    backgroundColor: '#d9534f',
-  },
-  motivation: {
-    fontSize: 16,
-    color: '#558b2f',
-    fontWeight: '600',
+    backgroundColor: '#d32f2f',
   },
 });
 

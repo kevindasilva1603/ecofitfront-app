@@ -11,6 +11,7 @@ const statsScreenStyles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '700',
     color: '#2e7d32',
+    marginTop: 50,
     marginBottom: 20,
     textAlign: 'center',
   },

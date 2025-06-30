@@ -1,6 +1,11 @@
 import React from 'react';
 import {
-  View, Text, TouchableOpacity, Animated, Alert,
+  View,
+  Text,
+  TouchableOpacity,
+  Animated,
+  Alert,
+  Dimensions,
 } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -10,6 +15,8 @@ import API_URL from '../api/config';
 import { sendNotification } from '../utils/notifications';
 import styles from '../styles/runtrackerscreen.styles';
 import useRunTracker from '../hooks/useRunTracker';
+
+const { height } = Dimensions.get('window');
 
 export default function RunTrackerScreen({ navigation }) {
   const {
@@ -44,7 +51,7 @@ export default function RunTrackerScreen({ navigation }) {
     };
 
     try {
-      const response = await axios.post(`${API_URL}/api/activities`, payload, {
+      await axios.post(`${API_URL}/api/activities`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -62,8 +69,6 @@ export default function RunTrackerScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Suivi de course</Text>
-
       {region && (
         <MapView
           style={styles.map}
@@ -80,42 +85,39 @@ export default function RunTrackerScreen({ navigation }) {
         </MapView>
       )}
 
-      <View style={styles.statsRow}>
-        <View style={styles.statBox}>
-          <Ionicons name="walk-outline" size={30} color="#4caf50" />
-          <Text style={styles.statValue}>{distance} km</Text>
-          <Text style={styles.statLabel}>Distance</Text>
+      <View style={styles.bottomSheet}>
+        <Text style={styles.motivation}>
+          {isRunning ? 'Bonne course ! 👟' : 'Appuyez sur ▶️ pour démarrer'}
+        </Text>
+
+        <View style={styles.statsRow}>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>{distance} km</Text>
+            <Text style={styles.statLabel}>Distance</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>{formatTime(secondsElapsed)}</Text>
+            <Text style={styles.statLabel}>Durée</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>{calories}</Text>
+            <Text style={styles.statLabel}>Calories</Text>
+          </View>
         </View>
 
-        <View style={styles.statBox}>
-          <Ionicons name="time-outline" size={30} color="#4caf50" />
-          <Text style={styles.statValue}>{formatTime(secondsElapsed)}</Text>
-          <Text style={styles.statLabel}>Durée</Text>
-        </View>
-
-        <View style={styles.statBox}>
-          <MaterialCommunityIcons name="fire" size={30} color="#4caf50" />
-          <Text style={styles.statValue}>{calories}</Text>
-          <Text style={styles.statLabel}>Calories</Text>
-        </View>
+        <Animated.View style={[styles.buttonWrapper, { transform: [{ scale: scaleAnim }] }]}>
+          <TouchableOpacity
+            style={[styles.actionButton, isRunning ? styles.stopButton : styles.startButton]}
+            onPress={() => {
+              if (isRunning) handleStop();
+              else setIsRunning(true);
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name={isRunning ? 'pause' : 'play'} size={50} color="#fff" />
+          </TouchableOpacity>
+        </Animated.View>
       </View>
-
-      <Animated.View style={[styles.buttonWrapper, { transform: [{ scale: scaleAnim }] }]}>
-        <TouchableOpacity
-          style={[styles.actionButton, isRunning ? styles.stopButton : styles.startButton]}
-          onPress={() => {
-            if (isRunning) handleStop();
-            else setIsRunning(true);
-          }}
-          activeOpacity={0.8}
-        >
-          <Ionicons name={isRunning ? 'pause' : 'play'} size={50} color="#fff" />
-        </TouchableOpacity>
-      </Animated.View>
-
-      <Text style={styles.motivation}>
-        {isRunning ? 'Bonne course ! 👟' : 'Appuyez sur ▶️ pour démarrer'}
-      </Text>
     </View>
   );
 }

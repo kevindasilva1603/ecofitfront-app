@@ -3,10 +3,8 @@ import {
   View,
   Text,
   FlatList,
-  StyleSheet,
   TouchableOpacity,
   Animated,
-  Dimensions,
   Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,8 +15,6 @@ import ActivityCard from '../components/ActivityCard';
 import { Ionicons } from '@expo/vector-icons';
 import { PointsContext } from '../context/PointsContext';
 import styles from '../styles/homescreen.styles';
-
-
 
 const HomeScreen = () => {
   const [email, setEmail] = useState('');
@@ -36,7 +32,7 @@ const HomeScreen = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setActivities(res.data);
-      refreshPoints(); // rafraîchir les points en parallèle
+      refreshPoints();
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 700,
@@ -68,7 +64,7 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header with logo and welcome */}
+      {/* Header */}
       <View style={styles.header}>
         <Image
           source={require('../../assets/leaf_bg.jpg')}
@@ -80,7 +76,7 @@ const HomeScreen = () => {
         </Text>
       </View>
 
-      {/* Total points panel */}
+      {/* Points Panel */}
       <View style={styles.pointsPanel}>
         <Ionicons name="leaf" size={36} color="#4caf50" />
         <Text style={styles.pointsText}>
@@ -91,37 +87,38 @@ const HomeScreen = () => {
       {/* Subtitle */}
       <Text style={styles.subtitle}>Activités récentes</Text>
 
-      {/* Activities list */}
+      {/* Activities */}
       <FlatList
         data={activities}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={{ paddingBottom: 160 }}
+        contentContainerStyle={{ paddingBottom: 180 }}
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
         style={styles.activitiesList}
       />
 
-      {/* Big Call to Action: Start run */}
-      <TouchableOpacity
-        style={styles.runButton}
-        activeOpacity={0.85}
-        onPress={() => navigation.navigate('RunTracker')}
-      >
-        <Ionicons name="walk-outline" size={28} color="#fff" />
-        <Text style={styles.runButtonText}>Commencer une course</Text>
-      </TouchableOpacity>
+      {/* Button Row */}
+      <View style={styles.buttonRow}>
+        <TouchableOpacity
+          style={styles.runButton}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('RunTracker')}
+        >
+          <Ionicons name="walk-outline" size={22} color="#fff" />
+          <Text style={styles.runButtonText}>Commencer</Text>
+        </TouchableOpacity>
 
-      {/* Floating button to add activity */}
-      <TouchableOpacity
-        style={styles.fab}
-        activeOpacity={0.7}
-        onPress={() => navigation.navigate('AddActivity')}
-      >
-        <Ionicons name="add" size={36} color="#fff" />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.addButton}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('AddActivity')}
+        >
+          <Ionicons name="add" size={24} color="#fff" />
+          <Text style={styles.runButtonText}>Ajouter</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
 
 export default HomeScreen;
-

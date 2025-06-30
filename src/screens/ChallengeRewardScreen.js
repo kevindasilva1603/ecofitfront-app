@@ -1,16 +1,18 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
   Alert,
+  ScrollView,
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import styles from '../styles/ChallengeRewardScreen.styles';
 import useChallengeReward from '../hooks/useChallengeReward';
 import { PointsContext } from '../context/PointsContext';
+import ValidationAnimation from '../components/ValidationAnimation';
 
 const { width } = Dimensions.get('window');
 
@@ -29,14 +31,17 @@ const localRewards = [
 export default function ChallengeRewardScreen() {
   const { ecoPoints, subtractPoints, refreshPoints } = useContext(PointsContext);
   const { completedChallenges, completeChallenge, redeemReward } = useChallengeReward({ refreshPoints, subtractPoints });
+  const [animationVisible, setAnimationVisible] = useState(false);
 
   const handleCompleteChallenge = async (challenge) => {
     const result = await completeChallenge(challenge);
+    if (result.success) setAnimationVisible(true);
     Alert.alert(result.success ? 'Défi validé !' : 'Erreur', result.message);
   };
 
   const handleRedeemReward = async (reward) => {
     const result = await redeemReward(reward, ecoPoints);
+    if (result.success) setAnimationVisible(true);
     Alert.alert(result.success ? 'Récompense 🎁' : 'Erreur', result.message);
   };
 
@@ -55,7 +60,9 @@ export default function ChallengeRewardScreen() {
           onPress={() => handleCompleteChallenge(item)}
           disabled={completed}
         >
-          <Text style={styles.challengeButtonText}>{completed ? 'Validé ✔️' : 'Valider le défi'}</Text>
+          <Text style={styles.challengeButtonText}>
+            {completed ? 'Validé ✔️' : 'Valider le défi'}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -86,7 +93,7 @@ export default function ChallengeRewardScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.header}>Défis & Récompenses</Text>
       <Text style={styles.points}>
         Vos éco-points : <Text style={styles.pointsNumber}>{ecoPoints}</Text>
@@ -108,9 +115,11 @@ export default function ChallengeRewardScreen() {
         data={localRewards}
         renderItem={renderReward}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: 20 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80 }}
         showsVerticalScrollIndicator={false}
       />
-    </View>
+
+      <ValidationAnimation visible={animationVisible} onClose={() => setAnimationVisible(false)} />
+    </ScrollView>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { View, Text, ScrollView, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import API_URL from '../api/config';
@@ -15,8 +15,8 @@ const StatsScreen = () => {
   const [totalDistance, setTotalDistance] = useState(0);
   const [totalPoints, setTotalPoints] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
-  const [weeklyDistances, setWeeklyDistances] = useState([]);
-  const [dailyPoints, setDailyPoints] = useState([]);
+  const [weeklyDistances, setWeeklyDistances] = useState([0, 0, 0, 0, 0, 0, 0]);
+  const [dailyPoints, setDailyPoints] = useState([0, 0, 0, 0, 0, 0, 0]);
 
   const fetchStats = async () => {
     const token = await AsyncStorage.getItem('token');
@@ -28,17 +28,27 @@ const StatsScreen = () => {
       });
       const activities = res.data;
 
-      // Calcul totaux
-      setTotalDistance(activities.reduce((a, b) => a + b.distance, 0));
-      setTotalPoints(activities.reduce((a, b) => a + b.points, 0));
-      setTotalDuration(activities.reduce((a, b) => a + b.duration, 0));
+      let totalDist = 0;
+      let totalDur = 0;
+      let totalPts = 0;
+      const distancesByDay = [0, 0, 0, 0, 0, 0, 0]; // Lundi -> Dimanche
+      const pointsByDay = [0, 0, 0, 0, 0, 0, 0];
 
-      // Exemple données avancées : distances par jour de la semaine (mock)
-      const distancesByDay = [3.4, 5.2, 4.1, 6.0, 0, 0, 7.3]; // km
+      activities.forEach((activity) => {
+        const date = new Date(activity.createdAt);
+        const day = (date.getDay() + 6) % 7; // Ajustement : 0 = lundi
+        distancesByDay[day] += activity.distance;
+        pointsByDay[day] += activity.points;
+
+        totalDist += activity.distance;
+        totalDur += activity.duration;
+        totalPts += activity.points;
+      });
+
+      setTotalDistance(totalDist);
+      setTotalDuration(totalDur);
+      setTotalPoints(totalPts);
       setWeeklyDistances(distancesByDay);
-
-      // Points par jour (mock)
-      const pointsByDay = [20, 35, 25, 40, 0, 0, 50];
       setDailyPoints(pointsByDay);
     } catch (error) {
       console.error('Erreur récupération données :', error);
@@ -70,7 +80,7 @@ const StatsScreen = () => {
 
       <Text style={[styles.title, { marginTop: 30 }]}>Statistiques avancées</Text>
 
-      <Text style={styles.chartTitle}>Distances parcourues (km) par jour de la semaine</Text>
+      <Text style={styles.chartTitle}>Distances parcourues (km) par jour</Text>
       <BarChart
         data={{
           labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
@@ -118,5 +128,3 @@ const chartConfig = {
     stroke: '#2e7d32',
   },
 };
-
-
