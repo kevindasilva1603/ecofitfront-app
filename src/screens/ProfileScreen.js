@@ -22,10 +22,17 @@ export default function ProfileScreen() {
   const [age, setAge] = useState('');
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
+  const [hasBadge, setHasBadge] = useState(false);
 
   useEffect(() => {
     loadProfile();
+    checkBadge();
   }, []);
+
+  const checkBadge = async () => {
+    const unlocked = await AsyncStorage.getItem('badge_feuille');
+    setHasBadge(unlocked === 'true');
+  };
 
   const loadProfile = async () => {
     const token = await AsyncStorage.getItem('token');
@@ -161,6 +168,7 @@ export default function ProfileScreen() {
             <Text style={styles.badge}>🏃‍♂️ 10 km</Text>
             <Text style={styles.badge}>🌱 1er défi validé</Text>
             <Text style={styles.badge}>♻️ 100 éco-points</Text>
+            {hasBadge && <Text style={styles.badge}>🍃 Feuille verte</Text>}
           </View>
         </View>
 

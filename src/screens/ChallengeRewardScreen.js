@@ -1,12 +1,7 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  Alert,
-  ScrollView,
-  Dimensions,
+  View, Text, FlatList, TouchableOpacity,
+  Alert, ScrollView, Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import styles from '../styles/ChallengeRewardScreen.styles';
@@ -30,8 +25,18 @@ const localRewards = [
 
 export default function ChallengeRewardScreen() {
   const { ecoPoints, subtractPoints, refreshPoints } = useContext(PointsContext);
-  const { completedChallenges, completeChallenge, redeemReward } = useChallengeReward({ refreshPoints, subtractPoints });
+  const {
+    completedChallenges,
+    unlockedRewards,
+    completeChallenge,
+    redeemReward
+  } = useChallengeReward({ refreshPoints, subtractPoints });
+
   const [animationVisible, setAnimationVisible] = useState(false);
+
+  useEffect(() => {
+    console.log('🎯 Éco-points récupérés :', ecoPoints);
+  }, [ecoPoints]);
 
   const handleCompleteChallenge = async (challenge) => {
     const result = await completeChallenge(challenge);
@@ -40,10 +45,13 @@ export default function ChallengeRewardScreen() {
   };
 
   const handleRedeemReward = async (reward) => {
-    const result = await redeemReward(reward, ecoPoints);
-    if (result.success) setAnimationVisible(true);
-    Alert.alert(result.success ? 'Récompense 🎁' : 'Erreur', result.message);
-  };
+  const result = await redeemReward(reward, ecoPoints);
+  if (result.success) {
+    subtractPoints(reward.pointsRequired); // décrémentation ici
+    setAnimationVisible(true);
+  }
+  Alert.alert(result.success ? 'Récompense 🎁' : 'Erreur', result.message);
+};
 
   const renderChallenge = ({ item }) => {
     const completed = completedChallenges[item.id];
@@ -70,19 +78,27 @@ export default function ChallengeRewardScreen() {
 
   const renderReward = ({ item }) => {
     const available = ecoPoints >= item.pointsRequired;
+    const alreadyRedeemed = unlockedRewards[item.id];
 
     return (
-      <View style={[styles.rewardCard, !available && styles.rewardLocked]}>
-        <Ionicons name="gift-outline" size={36} color={available ? '#4caf50' : '#a5d6a7'} />
+      <View style={[styles.rewardCard, (!available || alreadyRedeemed) && styles.rewardLocked]}>
+        <Ionicons name="gift-outline" size={36} color={available && !alreadyRedeemed ? '#4caf50' : '#a5d6a7'} />
         <View style={{ flex: 1, marginLeft: 15 }}>
           <Text style={styles.rewardName}>{item.name}</Text>
           <Text style={styles.rewardDesc}>{item.description}</Text>
-          <Text style={[styles.pointsRequired, !available && { color: '#a5d6a7' }]}>
+          <Text style={[styles.pointsRequired, (!available || alreadyRedeemed) && { color: '#a5d6a7' }]}>
             {item.pointsRequired} pts requis
           </Text>
+
           {available ? (
-            <TouchableOpacity style={styles.redeemButton} onPress={() => handleRedeemReward(item)}>
-              <Text style={styles.redeemButtonText}>Débloquer</Text>
+            <TouchableOpacity
+              style={[styles.redeemButton, alreadyRedeemed && styles.buttonDisabled]}
+              onPress={() => !alreadyRedeemed && handleRedeemReward(item)}
+              disabled={alreadyRedeemed}
+            >
+              <Text style={styles.redeemButtonText}>
+                {alreadyRedeemed ? 'Déjà débloqué ✔️' : 'Débloquer'}
+              </Text>
             </TouchableOpacity>
           ) : (
             <Text style={styles.lockedText}>Pas assez de points</Text>
@@ -95,9 +111,14 @@ export default function ChallengeRewardScreen() {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.header}>Défis & Récompenses</Text>
-      <Text style={styles.points}>
-        Vos éco-points : <Text style={styles.pointsNumber}>{ecoPoints}</Text>
-      </Text>
+
+      {/* ✅ Bloc éco-points dynamique */}
+      <View style={styles.pointsPanel}>
+        <Ionicons name="leaf" size={26} color="#4caf50" />
+        <Text style={styles.pointsText}>
+          Éco-points : <Text style={styles.pointsNumber}>{ecoPoints ?? 0}</Text>
+        </Text>
+      </View>
 
       <Text style={styles.subHeader}>Défis à relever</Text>
       <FlatList
