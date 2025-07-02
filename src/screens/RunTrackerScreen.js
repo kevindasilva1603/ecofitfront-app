@@ -34,8 +34,23 @@ export default function RunTrackerScreen({ navigation }) {
 
   const handleStop = async () => {
     setIsRunning(false);
+
     const distNum = parseFloat(distance);
-    const pts = Math.round(distNum * 5);
+    const pts = Math.max(1, Math.round(distNum * 5)); // ✅ Minimum 1 point garanti
+
+    console.log('🎯 Données course :');
+    console.log('Distance (string) :', distance);
+    console.log('Distance (num) :', distNum);
+    console.log('Durée (s) :', secondsElapsed);
+    console.log('Points calculés :', pts);
+
+    if (isNaN(distNum) || distNum < 0.01 || secondsElapsed < 5 || pts < 1) {
+      Alert.alert(
+        'Course non enregistrée',
+        'Parcours trop court. Essayez au moins 0,01 km et 5 sec pour tester. 🏃‍♂️'
+      );
+      return;
+    }
 
     const token = await AsyncStorage.getItem('token');
     if (!token) {
