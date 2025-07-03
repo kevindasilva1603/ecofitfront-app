@@ -1,7 +1,3 @@
-Voici le `README.md` **complet** pour le **frontend React Native** de ton application **ECO-fit**, prêt à être copié-collé dans GitHub :
-
----
-
 ```markdown
 # 📱 ECO-fit — Application Mobile
 
